@@ -21,6 +21,8 @@ import org.springframework.cloud.stream.app.grpc.message.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.Assert;
 
+import java.util.Map;
+
 /**
  * @author David Turanski
  **/
@@ -44,20 +46,20 @@ public class ProtobufMessageBuilder {
 		return this;
 	}
 
-	public ProtobufMessageBuilder withHeaders(ProtobufMessageHeaders messageHeaders) {
-		headers = messageHeaders;
+	public ProtobufMessageBuilder withProtobufHeaders(Map<String,Generic> messageHeaders) {
+		headers = new ProtobufMessageHeaders(messageHeaders);
 		return this;
 	}
 
 	public ProtobufMessageBuilder fromMessage(org.springframework.messaging.Message<?> message) {
-		this.withHeaders(message.getHeaders());
-		return this.withPayload(message.getPayload());
+		return this.withHeaders(message.getHeaders()).withPayload(message.getPayload());
 	}
 
 	public Message build() {
 		Assert.notNull(this.payload, "payload cannot be null.");
-		Assert.notEmpty(this.headers, "headers cannot be empty or null.");
+		if (headers == null) {
+			headers = new ProtobufMessageHeaders(new MessageHeaders(null));
+		}
 		return builder.putAllHeaders(this.headers.asMap()).setPayload(this.payload).build();
 	}
-
 }

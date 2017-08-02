@@ -24,6 +24,7 @@ import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.processor.Status;
 import org.springframework.cloud.stream.app.grpc.support.FromGenericConverter;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
+import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageHeaders;
 import org.springframework.messaging.MessageHeaders;
 
 import java.io.IOException;
@@ -75,7 +76,7 @@ public class ProcessorServer {
 			String result = fromGenericConverter.convert(message.getPayload()).toString();
 
 			Message response = new ProtobufMessageBuilder().withPayload(result.toUpperCase())
-					.withHeaders(new MessageHeaders(Collections.EMPTY_MAP)).build();
+					.withProtobufHeaders(message.getHeadersMap()).build();
 
 			observer.onNext(response);
 			observer.onCompleted();

@@ -44,6 +44,12 @@ public class ProtobufMessageHeaders implements Map<String, Object> {
 		}
 	}
 
+	public ProtobufMessageHeaders(Map<String,Generic> messageHeaders) {
+		headers = new LinkedHashMap<>();
+		headers.putAll(messageHeaders);
+	}
+
+
 	public boolean containsKey(Object key) {
 		return this.headers.containsKey(key);
 	}

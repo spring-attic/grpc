@@ -17,68 +17,87 @@
 package org.springframework.cloud.stream.app.grpc.processor;
 
 import io.grpc.Channel;
+import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.app.grpc.support.MessageUtils;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
 import org.springframework.cloud.stream.messaging.Processor;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author David Turanski
  **/
 
-@Configuration
-@Import(GrpcChannelConfiguration.class)
+@EnableBinding(Processor.class)
+@EnableConfigurationProperties(GrpcProperties.class)
 public class GrpcProcessorConfiguration {
 
 	@Autowired
 	private Channel grpcChannel;
+
+	@Autowired
+	private GrpcProperties properties;
+
+	@Autowired
+	private Processor channels;
+
+	@Autowired
+	private ProcessorGrpc.ProcessorStub processorStub;
 
 	@Bean
 	public ProcessorGrpc.ProcessorStub processorStub() {
 		return ProcessorGrpc.newStub(grpcChannel);
 	}
 
-	@EnableBinding(Processor.class)
-	static class ProcessorConfiguration {
-
-		@Autowired
-		private Processor channels;
-
-		@Autowired
-		private ProcessorGrpc.ProcessorStub processorStub;
-
-		@StreamListener(Processor.INPUT)
-		public void process(final Message<?> request) {
-
-			org.springframework.cloud.stream.app.grpc.message.Message protobufMessage = new ProtobufMessageBuilder()
-					.fromMessage(request).build();
-
-			processorStub.process(protobufMessage,
-					new StreamObserver<org.springframework.cloud.stream.app.grpc.message.Message>() {
-
-						@Override
-						public void onNext(org.springframework.cloud.stream.app.grpc.message.Message message) {
-							channels.output().send(MessageUtils.toMessage(message));
-						}
-
-						@Override
-						public void onError(Throwable throwable) {
-							throw new MessagingException(request, throwable);
-						}
-
-						@Override
-						public void onCompleted() {
-
-						}
-					});
+	@Bean
+	@ConditionalOnProperty(name = "grpc.host")
+	public Channel grpcChannel() {
+		ManagedChannelBuilder<?> managedChannelBuilder = ManagedChannelBuilder
+				.forAddress(properties.getHost(), properties.getPort()).usePlaintext(properties.isPlainText())
+				.directExecutor();
+		if (properties.getIdleTimeout() > 0) {
+			managedChannelBuilder = managedChannelBuilder.idleTimeout(properties.getIdleTimeout(), TimeUnit.SECONDS);
 		}
+		if (properties.getMaxMessageSize() > 0) {
+			managedChannelBuilder = managedChannelBuilder.maxInboundMessageSize(properties.getMaxMessageSize());
+		}
+		return managedChannelBuilder.build();
+	}
+
+	@StreamListener(Processor.INPUT)
+	public void process(final Message<?> request) {
+		ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
+
+		org.springframework.cloud.stream.app.grpc.message.Message protobufMessage = properties.isIncludeHeaders() ?
+				protobufMessageBuilder.fromMessage(request).build() :
+				protobufMessageBuilder.withPayload(request.getPayload()).build();
+
+		processorStub.process(protobufMessage,
+				new StreamObserver<org.springframework.cloud.stream.app.grpc.message.Message>() {
+
+					@Override
+					public void onNext(org.springframework.cloud.stream.app.grpc.message.Message message) {
+						channels.output().send(MessageUtils.toMessage(message));
+					}
+
+					@Override
+					public void onError(Throwable throwable) {
+						throw new MessagingException(request, throwable);
+					}
+
+					@Override
+					public void onCompleted() {
+
+					}
+				});
 	}
 }

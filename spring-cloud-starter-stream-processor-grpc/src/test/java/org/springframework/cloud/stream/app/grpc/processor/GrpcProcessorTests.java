@@ -36,8 +36,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.GenericMessage;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -80,6 +84,41 @@ public abstract class GrpcProcessorTests {
 			processor.input().send(new GenericMessage<String>("hello"));
 			Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
 			assertThat(message.getPayload()).isEqualTo("HELLO");
+			assertThat(message.getHeaders().getId()).isNotNull();
+			assertThat(message.getHeaders().getTimestamp()).isNotZero();
+		}
+	}
+
+	@TestPropertySource(properties = {"grpc.include-headers=true"})
+	public static class ProcessorWithHeadersTests extends GrpcProcessorTests {
+
+		@Autowired
+		private MessageCollector messageCollector;
+
+		@Autowired
+		private Processor processor;
+
+		@Autowired
+		private GrpcProperties properties;
+
+		@Test
+		public void test() throws InterruptedException {
+
+			assertThat(properties.isIncludeHeaders()).isTrue();
+
+			Map<String,Object> headers = new HashMap<>();
+			headers.put("int",123);
+			headers.put("str","string");
+			headers.put("pi",3.14);
+
+			processor.input().send(MessageBuilder.withPayload("hello").copyHeaders(headers).build());
+			Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
+			assertThat(message.getPayload()).isEqualTo("HELLO");
+			assertThat(message.getHeaders().getId()).isNotNull();
+			assertThat(message.getHeaders().getTimestamp()).isNotZero();
+			assertThat(message.getHeaders().get("int")).isEqualTo(123);
+			assertThat(message.getHeaders().get("str")).isEqualTo("string");
+			assertThat(message.getHeaders().get("pi")).isEqualTo(3.14);
 		}
 	}
 

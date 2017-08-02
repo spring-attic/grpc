@@ -47,6 +47,11 @@ public class GrpcProperties {
 	 */
 	private int maxMessageSize;
 
+	/**
+	 * Flag to include headers in Messages to the remote process.
+	 */
+	private boolean includeHeaders;
+
 	public int getMaxMessageSize() {
 		return maxMessageSize;
 	}
@@ -86,4 +91,13 @@ public class GrpcProperties {
 	public void setIdleTimeout(long idleTimeout) {
 		this.idleTimeout = idleTimeout;
 	}
+
+	public boolean isIncludeHeaders() {
+		return includeHeaders;
+	}
+
+	public void setIncludeHeaders(boolean includeHeaders) {
+		this.includeHeaders = includeHeaders;
+	}
+
 }
