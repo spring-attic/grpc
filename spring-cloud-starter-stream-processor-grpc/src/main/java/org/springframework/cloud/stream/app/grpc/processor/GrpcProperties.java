@@ -21,6 +21,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * @author David Turanski
  **/
+
 @ConfigurationProperties(prefix = "grpc")
 public class GrpcProperties {
 

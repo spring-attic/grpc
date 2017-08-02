@@ -60,7 +60,7 @@ public class GrpcProcessorConfiguration {
 
 	@Bean
 	@ConditionalOnProperty(name = "grpc.host")
-	public Channel grpcChannel() {
+	public Channel grpcChannel(GrpcProperties properties) {
 		ManagedChannelBuilder<?> managedChannelBuilder = ManagedChannelBuilder
 				.forAddress(properties.getHost(), properties.getPort()).usePlaintext(properties.isPlainText())
 				.directExecutor();
