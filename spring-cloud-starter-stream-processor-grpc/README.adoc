@@ -1,0 +1,23 @@
+//tag::ref-doc[]
+= gRPC Processor
+
+This processor uses gRPC to process Messages via a remote process written in any language that supports gRPC.
+
+== Options
+
+The **$$grpc$$** $$processor$$ has the following options:
+
+//tag::configuration-properties[]
+$$grpc.host$$:: $$The gRPC host name.$$ *($$String$$, default: `$$<none>$$`)*
+$$grpc.idle-timeout$$:: $$The idle timeout in seconds.$$ *($$Long$$, default: `$$0$$`)*
+$$grpc.max-message-size$$:: $$The maximum message size (bytes).$$ *($$Integer$$, default: `$$0$$`)*
+$$grpc.plain-text$$:: $$Flag to send messages in plain text. SSL configuration required otherwise.$$ *($$Boolean$$, default: `$$true$$`)*
+$$grpc.port$$:: $$The gRPC server port.$$ *($$Integer$$, default: `$$0$$`)*
+//end::configuration-properties[]
+
+//end::ref-doc[]
+== Build
+
+```
+$> mvn package
+```

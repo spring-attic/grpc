@@ -1,0 +1,17 @@
+syntax = "proto3";
+import "message.proto";
+import "google/protobuf/empty.proto";
+option java_multiple_files = true;
+option java_package = "org.springframework.cloud.stream.app.grpc.processor";
+option java_outer_classname = "ProcessorProtos";
+
+package processor;
+
+service Processor {
+  rpc Ping(google.protobuf.Empty) returns (Status) {}
+  rpc Process(message.Message) returns (message.Message) {}
+}
+
+message Status {
+	string message = 1;
+}
