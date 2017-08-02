@@ -1,0 +1,44 @@
+/*
+ * Copyright 2017-2018 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+option java_multiple_files = false;
+option java_package = "org.springframework.cloud.stream.app.grpc.processor";
+option java_outer_classname = "ProcessorProtos";
+
+package processor;
+
+service Processor {
+  rpc Ping(google.protobuf.Empty) returns (Status) {}
+  rpc Process(Message) returns (Message) {}
+  rpc Stream(stream Message) returns(stream Message) {}
+}
+
+message Status {
+	string message = 1;
+}
+
+
+// The message containing payload and headers.
+message Message {
+  bytes payload = 1;
+  map<string, HeaderValue> headers = 2;
+}
+
+//Multi map to support multi valued HTTP headers
+message HeaderValue {
+	repeated string values = 1;
+}
