@@ -16,17 +16,23 @@
 
 package org.springframework.cloud.stream.app.grpc.processor;
 
+import com.google.protobuf.Empty;
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
+import io.grpc.stub.StreamObserver;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cloud.stream.app.grpc.support.MessageUtils;
 import org.springframework.cloud.stream.app.grpc.test.support.ProcessorServer;
 import org.springframework.cloud.stream.messaging.Processor;
 import org.springframework.cloud.stream.test.binder.MessageCollector;
@@ -35,6 +41,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.TestPropertySource;
@@ -46,6 +53,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author David Turanski
@@ -121,7 +129,6 @@ public abstract class GrpcProcessorTests {
 			assertThat(message.getHeaders().get("pi")).isEqualTo(3.14);
 		}
 	}
-
 	@Configuration
 	@EnableAutoConfiguration
 	@Import(GrpcProcessorConfiguration.class)

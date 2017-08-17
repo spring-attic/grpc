@@ -18,6 +18,7 @@ package org.springframework.cloud.stream.app.grpc.test.support;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.springframework.cloud.stream.app.grpc.message.Message;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
@@ -29,6 +30,7 @@ import org.springframework.messaging.MessageHeaders;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author David Turanski
@@ -69,6 +71,8 @@ public class ProcessorServer {
 	}
 
 	public static class ProcessorService extends ProcessorGrpc.ProcessorImplBase {
+		private static Integer MAX_PINGS = 3;
+		private AtomicInteger pingCount = new AtomicInteger(0);
 		private FromGenericConverter fromGenericConverter = new FromGenericConverter();
 
 		@Override
@@ -84,6 +88,11 @@ public class ProcessorServer {
 
 		public void ping(com.google.protobuf.Empty request,
 				io.grpc.stub.StreamObserver<org.springframework.cloud.stream.app.grpc.processor.Status> responseObserver) {
+			System.out.println(pingCount.get());
+			if (pingCount.incrementAndGet() == MAX_PINGS) {
+				pingCount.set(0);
+				throw new StatusRuntimeException(io.grpc.Status.UNAVAILABLE);
+			}
 			responseObserver.onNext(Status.newBuilder().setMessage("alive").build());
 			responseObserver.onCompleted();
 		}
