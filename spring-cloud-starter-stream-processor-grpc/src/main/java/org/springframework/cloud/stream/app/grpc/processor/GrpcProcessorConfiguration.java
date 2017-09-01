@@ -16,6 +16,7 @@
 
 package org.springframework.cloud.stream.app.grpc.processor;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.Empty;
 import io.grpc.Channel;
 import io.grpc.ManagedChannelBuilder;
@@ -31,8 +32,10 @@ import org.springframework.cloud.stream.app.grpc.support.MessageUtils;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
 import org.springframework.cloud.stream.messaging.Processor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
+import org.springframework.messaging.handler.annotation.SendTo;
 
 import java.util.concurrent.TimeUnit;
 
@@ -44,21 +47,79 @@ import java.util.concurrent.TimeUnit;
 @EnableConfigurationProperties(GrpcProperties.class)
 public class GrpcProcessorConfiguration {
 
-	@Autowired
-	private Channel grpcChannel;
+	@Configuration
+	@ConditionalOnProperty(value = "grpc.stub", havingValue = "blocking", matchIfMissing = true)
+	static class BlockingStubConfiguration {
+		@Autowired
+		private ProcessorGrpc.ProcessorBlockingStub processorStub;
 
-	@Autowired
-	private GrpcProperties properties;
 
-	@Autowired
-	private Processor channels;
+		@Autowired
+		private GrpcProperties properties;
 
-	@Autowired
-	private ProcessorGrpc.ProcessorStub processorStub;
+		@Bean
+		public ProcessorGrpc.ProcessorBlockingStub processorStub(Channel grpcChannel) {
+			return ProcessorGrpc.newBlockingStub(grpcChannel);
+		}
 
-	@Bean
-	public ProcessorGrpc.ProcessorStub processorStub() {
-		return ProcessorGrpc.newStub(grpcChannel);
+		@StreamListener(Processor.INPUT)
+		@SendTo(Processor.OUTPUT)
+		public Object process(final Message<?> request) {
+			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
+
+			org.springframework.cloud.stream.app.grpc.message.Message protobufMessage = properties.isIncludeHeaders() ?
+				protobufMessageBuilder.fromMessage(request).build() :
+				protobufMessageBuilder.withPayload(request.getPayload()).build();
+
+			return MessageUtils.toMessage(processorStub.process(protobufMessage));
+		}
+	}
+
+	@Configuration
+	@ConditionalOnProperty(value = "grpc.stub", havingValue = "async")
+	static class AsyncStubConfiguration {
+
+		@Autowired
+		private ProcessorGrpc.ProcessorStub processorStub;
+
+		@Autowired Processor channels;
+
+		@Autowired
+		private GrpcProperties properties;
+
+		@Bean
+		public ProcessorGrpc.ProcessorStub processorStub(Channel grpcChannel) {
+			return ProcessorGrpc.newStub(grpcChannel);
+		}
+
+		@StreamListener(Processor.INPUT)
+		public void process(final Message<?> request) {
+			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
+
+			org.springframework.cloud.stream.app.grpc.message.Message protobufMessage = properties.isIncludeHeaders() ?
+				protobufMessageBuilder.fromMessage(request).build() :
+				protobufMessageBuilder.withPayload(request.getPayload()).build();
+
+			processorStub
+				.process(protobufMessage, new StreamObserver<org.springframework.cloud.stream.app.grpc.message.Message>() {
+
+					@Override
+					public void onNext(org.springframework.cloud.stream.app.grpc.message.Message message) {
+						channels.output().send(MessageUtils.toMessage(message));
+					}
+
+					@Override
+					public void onError(Throwable throwable) {
+						throw new MessagingException(request, throwable);
+					}
+
+					@Override
+					public void onCompleted() {
+
+					}
+				});
+		}
+
 	}
 
 	@Bean
@@ -76,46 +137,18 @@ public class GrpcProcessorConfiguration {
 		return managedChannelBuilder.build();
 	}
 
-	@StreamListener(Processor.INPUT)
-	public void process(final Message<?> request) {
-		ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
-
-		org.springframework.cloud.stream.app.grpc.message.Message protobufMessage = properties.isIncludeHeaders() ?
-			protobufMessageBuilder.fromMessage(request).build() :
-			protobufMessageBuilder.withPayload(request.getPayload()).build();
-
-		processorStub
-			.process(protobufMessage, new StreamObserver<org.springframework.cloud.stream.app.grpc.message.Message>() {
-
-				@Override
-				public void onNext(org.springframework.cloud.stream.app.grpc.message.Message message) {
-					channels.output().send(MessageUtils.toMessage(message));
-				}
-
-				@Override
-				public void onError(Throwable throwable) {
-					throw new MessagingException(request, throwable);
-				}
-
-				@Override
-				public void onCompleted() {
-
-				}
-			});
-	}
-
 	@Bean
-	ProcessorGrpc.ProcessorBlockingStub pingStub() {
+	ProcessorGrpc.ProcessorBlockingStub pingStub(Channel grpcChannel) {
 		return ProcessorGrpc.newBlockingStub(grpcChannel);
 	}
 
 	@Bean
-	public HealthIndicator sideCarHealthIndicator() {
+	public HealthIndicator sideCarHealthIndicator(final ProcessorGrpc.ProcessorBlockingStub pingStub) {
 		return new HealthIndicator() {
 			@Override
 			public Health health() {
 				try {
-					Status status = pingStub().ping(Empty.getDefaultInstance());
+					Status status = pingStub.ping(Empty.getDefaultInstance());
 					return Health.status(status.getMessage()).build();
 				}
 				catch (Exception e) {

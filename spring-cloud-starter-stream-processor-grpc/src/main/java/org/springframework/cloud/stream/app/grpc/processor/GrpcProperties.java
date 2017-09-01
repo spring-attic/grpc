@@ -25,6 +25,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "grpc")
 public class GrpcProperties {
 
+	public enum Stub {async, blocking}
 	/**
 	 * The gRPC host name.
 	 */
@@ -52,6 +53,11 @@ public class GrpcProperties {
 	 * Flag to include headers in Messages to the remote process.
 	 */
 	private boolean includeHeaders;
+
+	/**
+	 * RPC communications style ('blocking' or 'async').
+	 */
+	public Stub stub = Stub.blocking;
 
 	public int getMaxMessageSize() {
 		return maxMessageSize;
@@ -101,4 +107,11 @@ public class GrpcProperties {
 		this.includeHeaders = includeHeaders;
 	}
 
+	public Stub getStub() {
+		return stub;
+	}
+
+	public void setStub(Stub stub) {
+		this.stub = stub;
+	}
 }

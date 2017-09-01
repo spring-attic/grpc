@@ -16,32 +16,26 @@
 
 package org.springframework.cloud.stream.app.grpc.processor;
 
-import com.google.protobuf.Empty;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
-import io.grpc.StatusException;
-import io.grpc.StatusRuntimeException;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
-import io.grpc.stub.StreamObserver;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.stream.app.grpc.support.MessageUtils;
 import org.springframework.cloud.stream.app.grpc.test.support.ProcessorServer;
 import org.springframework.cloud.stream.messaging.Processor;
 import org.springframework.cloud.stream.test.binder.MessageCollector;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.TestPropertySource;
@@ -51,9 +45,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
 
 /**
  * @author David Turanski
@@ -97,7 +88,7 @@ public abstract class GrpcProcessorTests {
 		}
 	}
 
-	@TestPropertySource(properties = {"grpc.include-headers=true"})
+	@TestPropertySource(properties = { "grpc.include-headers=true" })
 	public static class ProcessorWithHeadersTests extends GrpcProcessorTests {
 
 		@Autowired
@@ -114,10 +105,10 @@ public abstract class GrpcProcessorTests {
 
 			assertThat(properties.isIncludeHeaders()).isTrue();
 
-			Map<String,Object> headers = new HashMap<>();
-			headers.put("int",123);
-			headers.put("str","string");
-			headers.put("pi",3.14);
+			Map<String, Object> headers = new HashMap<>();
+			headers.put("int", 123);
+			headers.put("str", "string");
+			headers.put("pi", 3.14);
 
 			processor.input().send(MessageBuilder.withPayload("hello").copyHeaders(headers).build());
 			Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
@@ -129,6 +120,26 @@ public abstract class GrpcProcessorTests {
 			assertThat(message.getHeaders().get("pi")).isEqualTo(3.14);
 		}
 	}
+
+	@TestPropertySource(properties = { "grpc.stub=async" })
+	public static class AsyncProcessorTests extends GrpcProcessorTests {
+
+		@Autowired
+		private MessageCollector messageCollector;
+
+		@Autowired
+		private Processor processor;
+
+		@Test
+		public void test() throws InterruptedException {
+			processor.input().send(new GenericMessage<String>("hello"));
+			Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
+			assertThat(message.getPayload()).isEqualTo("HELLO");
+			assertThat(message.getHeaders().getId()).isNotNull();
+			assertThat(message.getHeaders().getTimestamp()).isNotZero();
+		}
+	}
+
 	@Configuration
 	@EnableAutoConfiguration
 	@Import(GrpcProcessorConfiguration.class)
