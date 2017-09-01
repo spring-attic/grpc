@@ -55,9 +55,9 @@ public class GrpcProperties {
 	private boolean includeHeaders;
 
 	/**
-	 * RPC communications style ('blocking' or 'async').
+	 * RPC communications style (default 'blocking').
 	 */
-	public Stub stub = Stub.blocking;
+	private Stub stub = Stub.blocking;
 
 	public int getMaxMessageSize() {
 		return maxMessageSize;

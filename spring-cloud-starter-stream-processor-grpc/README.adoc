@@ -7,6 +7,13 @@ the Polyglot sidecar application handles the business logic. The sidecar applica
 link:https://grpc.io/[grpc] service using link:../grpc-app-protos/src/main/proto/processor.proto[this Google protocol
 buffers schema].
 
+[NOTE]
+====
+The gRPC client stub is blocking by default. An asynchronous stub is provided as an option. This might perform
+better under certain circumstances (e.g., if the server is multi-threaded) however message ordering will not be
+guaranteed.
+====
+
 == Python support
 For Python sidecar applications, the link:https://github.com/dturanski/springcloudstream[springcloudstream] package is
 available to handle the gRPC communications.
@@ -44,6 +51,7 @@ $$grpc.include-headers$$:: $$Flag to include headers in Messages to the remote p
 $$grpc.max-message-size$$:: $$The maximum message size (bytes).$$ *($$Integer$$, default: `$$0$$`)*
 $$grpc.plain-text$$:: $$Flag to send messages in plain text. SSL configuration required otherwise.$$ *($$Boolean$$, default: `$$true$$`)*
 $$grpc.port$$:: $$The gRPC server port.$$ *($$Integer$$, default: `$$0$$`)*
+$$grpc.stub$$:: $$RPC communications style (default 'blocking').$$ *($$Stub$$, default: `$$<none>$$`, possible values: `async`,`blocking`)*
 //end::configuration-properties[]
 
 //end::ref-doc[]
