@@ -14,10 +14,6 @@ better under certain circumstances (e.g., if the server is multi-threaded) howev
 guaranteed.
 ====
 
-== Python support
-For Python sidecar applications, the link:https://github.com/dturanski/springcloudstream[springcloudstream] package is
-available to handle the gRPC communications.
-
 == Input
 
 === Headers
