@@ -86,7 +86,7 @@ public class PingTests {
 			fail("Should throw exception");
 		}
 		catch (StatusRuntimeException e) {
-			assertThat(e.getStatus()).isEqualTo(io.grpc.Status.UNAVAILABLE);
+			assertThat(e.getStatus()).isEqualTo(io.grpc.Status.UNKNOWN);
 		}
 	}
 
