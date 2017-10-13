@@ -16,7 +16,6 @@
 
 package org.springframework.cloud.stream.app.grpc.processor;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.Empty;
 import io.grpc.Channel;
 import io.grpc.ManagedChannelBuilder;
@@ -53,7 +52,6 @@ public class GrpcProcessorConfiguration {
 		@Autowired
 		private ProcessorGrpc.ProcessorBlockingStub processorStub;
 
-
 		@Autowired
 		private GrpcProperties properties;
 
@@ -82,7 +80,8 @@ public class GrpcProcessorConfiguration {
 		@Autowired
 		private ProcessorGrpc.ProcessorStub processorStub;
 
-		@Autowired Processor channels;
+		@Autowired
+		private Processor channels;
 
 		@Autowired
 		private GrpcProperties properties;
@@ -100,8 +99,8 @@ public class GrpcProcessorConfiguration {
 				protobufMessageBuilder.fromMessage(request).build() :
 				protobufMessageBuilder.withPayload(request.getPayload()).build();
 
-			processorStub
-				.process(protobufMessage, new StreamObserver<org.springframework.cloud.stream.app.grpc.message.Message>() {
+			processorStub.process(protobufMessage,
+				new StreamObserver<org.springframework.cloud.stream.app.grpc.message.Message>() {
 
 					@Override
 					public void onNext(org.springframework.cloud.stream.app.grpc.message.Message message) {
