@@ -20,16 +20,13 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import org.springframework.cloud.stream.app.grpc.message.Message;
+import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.processor.Status;
 import org.springframework.cloud.stream.app.grpc.support.FromGenericConverter;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
-import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageHeaders;
-import org.springframework.messaging.MessageHeaders;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -80,14 +77,14 @@ public class ProcessorServer {
 			String result = fromGenericConverter.convert(message.getPayload()).toString();
 
 			Message response = new ProtobufMessageBuilder().withPayload(result.toUpperCase())
-					.withProtobufHeaders(message.getHeadersMap()).build();
+				.withProtobufHeaders(message.getHeadersMap()).build();
 
 			observer.onNext(response);
 			observer.onCompleted();
 		}
 
 		public void ping(com.google.protobuf.Empty request,
-				io.grpc.stub.StreamObserver<org.springframework.cloud.stream.app.grpc.processor.Status> responseObserver) {
+			io.grpc.stub.StreamObserver<org.springframework.cloud.stream.app.grpc.processor.Status> responseObserver) {
 			System.out.println(pingCount.get());
 			if (pingCount.incrementAndGet() == MAX_PINGS) {
 				pingCount.set(0);

@@ -21,7 +21,6 @@ import io.grpc.Channel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -66,7 +65,7 @@ public class GrpcProcessorConfiguration {
 		public Object process(final Message<?> request) {
 			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
 
-			org.springframework.cloud.stream.app.grpc.message.Message protobufMessage = properties.isIncludeHeaders() ?
+			org.springframework.cloud.stream.app.grpc.processor.Message protobufMessage = properties.isIncludeHeaders() ?
 				protobufMessageBuilder.fromMessage(request).build() :
 				protobufMessageBuilder.withPayload(request.getPayload()).build();
 
@@ -96,15 +95,15 @@ public class GrpcProcessorConfiguration {
 		public void process(final Message<?> request) {
 			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
 
-			org.springframework.cloud.stream.app.grpc.message.Message protobufMessage = properties.isIncludeHeaders() ?
+			org.springframework.cloud.stream.app.grpc.processor.Message protobufMessage = properties.isIncludeHeaders() ?
 				protobufMessageBuilder.fromMessage(request).build() :
 				protobufMessageBuilder.withPayload(request.getPayload()).build();
 
 			processorStub.process(protobufMessage,
-				new StreamObserver<org.springframework.cloud.stream.app.grpc.message.Message>() {
+				new StreamObserver<org.springframework.cloud.stream.app.grpc.processor.Message>() {
 
 					@Override
-					public void onNext(org.springframework.cloud.stream.app.grpc.message.Message message) {
+					public void onNext(org.springframework.cloud.stream.app.grpc.processor.Message message) {
 						channels.output().send(MessageUtils.toMessage(message));
 					}
 

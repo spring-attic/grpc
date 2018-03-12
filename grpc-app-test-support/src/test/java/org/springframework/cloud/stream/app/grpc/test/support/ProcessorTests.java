@@ -27,7 +27,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.cloud.stream.app.grpc.message.Message;
+import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.support.FromGenericConverter;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;

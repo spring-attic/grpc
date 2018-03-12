@@ -17,7 +17,7 @@
 package org.springframework.cloud.stream.app.grpc.support;
 
 import org.junit.Test;
-import org.springframework.cloud.stream.app.grpc.message.Message;
+import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.messaging.support.MessageBuilder;
 
 import java.util.Collections;

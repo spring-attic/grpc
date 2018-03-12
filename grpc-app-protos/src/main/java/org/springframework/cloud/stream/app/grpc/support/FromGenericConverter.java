@@ -16,7 +16,7 @@
 
 package org.springframework.cloud.stream.app.grpc.support;
 
-import org.springframework.cloud.stream.app.grpc.message.Generic;
+import org.springframework.cloud.stream.app.grpc.processor.Generic;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.util.Assert;
 

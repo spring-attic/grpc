@@ -18,7 +18,7 @@ package org.springframework.cloud.stream.app.grpc.support;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.cloud.stream.app.grpc.message.Generic;
+import org.springframework.cloud.stream.app.grpc.processor.Generic;
 import org.springframework.messaging.MessageHeaders;
 
 import java.util.Collection;
