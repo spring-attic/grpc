@@ -16,50 +16,102 @@
 
 package org.springframework.cloud.stream.app.grpc.support;
 
-import org.springframework.cloud.stream.app.grpc.processor.Generic;
+import com.google.protobuf.ByteString;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.cloud.stream.app.grpc.processor.HeaderValue;
 import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.Assert;
+import org.springframework.util.MimeType;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author David Turanski
  **/
 public class ProtobufMessageBuilder {
 
-	private ProtobufMessageHeaders headers;
-	private Generic payload;
+	private static Log logger = LogFactory.getLog(ProtobufMessageBuilder.class);
+
+	private Map<String, HeaderValue> headers;
+	private byte[] payload;
 	private Message.Builder builder = Message.newBuilder();
-	private ToGenericConverter toGenericConverter = new ToGenericConverter();
 
 	public ProtobufMessageBuilder() {
 	}
 
-	public ProtobufMessageBuilder withPayload(Object payload) {
-		this.payload = toGenericConverter.convert(payload);
+	public ProtobufMessageBuilder withPayload(byte[] payload) {
+		this.payload = payload;
 		return this;
 	}
 
 	public ProtobufMessageBuilder withHeaders(MessageHeaders messageHeaders) {
-		headers = new ProtobufMessageHeaders(messageHeaders);
+
+		Map<String, HeaderValue> headers = messageHeaders.entrySet().stream()
+			.collect(Collectors.toMap(Map.Entry::getKey, e -> {
+				HeaderValue.Builder builder = HeaderValue.newBuilder();
+
+				if (e.getKey() == MessageHeaders.ID) {
+					builder.addValues(e.getValue().toString());
+				}
+				else if (e.getKey() == MessageHeaders.TIMESTAMP) {
+					builder.addValues(String.valueOf((long) e.getValue()));
+				}
+
+				else if (e.getValue() instanceof String) {
+					builder.addValues((String) e.getValue());
+
+				}
+
+				else if (e.getValue() instanceof MimeType) {
+					builder.addValues(e.getValue().toString());
+				}
+
+				else if (e.getValue() instanceof Iterable<?>) {
+					try {
+						builder.addAllValues((Iterable<String>) e.getValue());
+
+					}
+					catch (ClassCastException e1) {
+						logger.warn(String.format("Header %s is not mapped to gRPC message. Unsupported element type", e.getKey()));
+					}
+				}
+				else if (e.getValue().getClass().isArray()) {
+					Object[] array = (Object[])e.getValue();
+					for (Object obj: array) {
+						builder.addValues(obj.toString());
+					}
+				}
+				else {
+					if (e.getValue() != null) {
+						logger.warn(String.format("Header %s is not mapped  to gRPC message. Unsupported type %s", e.getKey(),
+							e.getValue().getClass().getName()));
+					}
+				}
+				return builder.build();
+			}));
+		this.headers = headers;
 		return this;
 	}
 
-	public ProtobufMessageBuilder withProtobufHeaders(Map<String,Generic> messageHeaders) {
-		headers = new ProtobufMessageHeaders(messageHeaders);
+	public ProtobufMessageBuilder withProtobufHeaders(Map<String, HeaderValue> messageHeaders) {
+		headers = messageHeaders;
 		return this;
 	}
 
 	public ProtobufMessageBuilder fromMessage(org.springframework.messaging.Message<?> message) {
-		return this.withHeaders(message.getHeaders()).withPayload(message.getPayload());
+		return this.withHeaders(message.getHeaders()).withPayload((byte[]) message.getPayload());
 	}
 
 	public Message build() {
 		Assert.notNull(this.payload, "payload cannot be null.");
 		if (headers == null) {
-			headers = new ProtobufMessageHeaders(new MessageHeaders(null));
+			return builder.setPayload(ByteString.copyFrom(payload)).build();
 		}
-		return builder.putAllHeaders(this.headers.asMap()).setPayload(this.payload).build();
+
+		return builder.putAllHeaders(headers).setPayload(ByteString.copyFrom(payload)).build();
 	}
 }

@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
-import org.springframework.cloud.stream.app.grpc.support.FromGenericConverter;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
 import org.springframework.messaging.support.GenericMessage;
 
@@ -59,15 +58,14 @@ public class ProcessorTests {
 	@Test
 	public void process() {
 
-		Message message = new ProtobufMessageBuilder().fromMessage(new GenericMessage<String>("hello, world")).build();
+		Message message = new ProtobufMessageBuilder().fromMessage(new GenericMessage<>("hello, world".getBytes())).build();
 
 		ProcessorGrpc.ProcessorBlockingStub stub = ProcessorGrpc.newBlockingStub(inProcessChannel);
 
 		Message response = stub.process(message);
 
-		FromGenericConverter fromGenericConverter = new FromGenericConverter();
 
-		Assert.assertEquals("HELLO, WORLD", fromGenericConverter.convert(response.getPayload()));
+		Assert.assertEquals("HELLO, WORLD", response.getPayload().toStringUtf8());
 	}
 
 }

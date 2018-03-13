@@ -23,7 +23,6 @@ import io.grpc.stub.StreamObserver;
 import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.processor.Status;
-import org.springframework.cloud.stream.app.grpc.support.FromGenericConverter;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
 
 import java.io.IOException;
@@ -70,13 +69,12 @@ public class ProcessorServer {
 	public static class ProcessorService extends ProcessorGrpc.ProcessorImplBase {
 		private static Integer MAX_PINGS = 3;
 		private AtomicInteger pingCount = new AtomicInteger(0);
-		private FromGenericConverter fromGenericConverter = new FromGenericConverter();
 
 		@Override
 		public void process(Message message, StreamObserver<Message> observer) {
-			String result = fromGenericConverter.convert(message.getPayload()).toString();
+			String result = new String(message.getPayload().toStringUtf8());
 
-			Message response = new ProtobufMessageBuilder().withPayload(result.toUpperCase())
+			Message response = new ProtobufMessageBuilder().withPayload(result.toUpperCase().getBytes())
 				.withProtobufHeaders(message.getHeadersMap()).build();
 
 			observer.onNext(response);

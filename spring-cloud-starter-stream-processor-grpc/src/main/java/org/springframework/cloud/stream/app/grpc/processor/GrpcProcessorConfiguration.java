@@ -67,7 +67,7 @@ public class GrpcProcessorConfiguration {
 
 			org.springframework.cloud.stream.app.grpc.processor.Message protobufMessage = properties.isIncludeHeaders() ?
 				protobufMessageBuilder.fromMessage(request).build() :
-				protobufMessageBuilder.withPayload(request.getPayload()).build();
+				protobufMessageBuilder.withPayload((byte[])request.getPayload()).build();
 
 			return MessageUtils.toMessage(processorStub.process(protobufMessage));
 		}
@@ -97,7 +97,7 @@ public class GrpcProcessorConfiguration {
 
 			org.springframework.cloud.stream.app.grpc.processor.Message protobufMessage = properties.isIncludeHeaders() ?
 				protobufMessageBuilder.fromMessage(request).build() :
-				protobufMessageBuilder.withPayload(request.getPayload()).build();
+				protobufMessageBuilder.withPayload((byte[])request.getPayload()).build();
 
 			processorStub.process(protobufMessage,
 				new StreamObserver<org.springframework.cloud.stream.app.grpc.processor.Message>() {

@@ -9,6 +9,7 @@ package processor;
 service Processor {
   rpc Ping(google.protobuf.Empty) returns (Status) {}
   rpc Process(Message) returns (Message) {}
+  rpc Stream(stream Message) returns(stream Message) {}
 }
 
 message Status {
@@ -18,18 +19,11 @@ message Status {
 
 // The message containing payload and headers.
 message Message {
-  Generic payload = 20;
-  map<string, Generic> headers = 21;
+  bytes payload = 1;
+  map<string, HeaderValue> headers = 2;
 }
 
-message Generic {
-    oneof type {
-        string string = 1;
-        bytes bytes = 2;
-        int64 long = 3;
-        int32 int = 4;
-        bool  bool = 5;
-        double double = 6;
-        float float = 7;
-    }
+//Multi map to support multi valued HTTP headers
+message HeaderValue {
+	repeated string values = 1;
 }

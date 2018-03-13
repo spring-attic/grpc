@@ -16,7 +16,7 @@
 
 package org.springframework.cloud.stream.app.grpc.support;
 
-import org.springframework.cloud.stream.app.grpc.processor.Generic;
+import org.springframework.cloud.stream.app.grpc.processor.HeaderValue;
 import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.integration.support.MutableMessageBuilder;
 import org.springframework.messaging.MessageHeaders;
@@ -30,18 +30,28 @@ import java.util.UUID;
  **/
 public abstract class MessageUtils {
 	public static org.springframework.messaging.Message<?> toMessage(Message message) {
-		FromGenericConverter fromGenericConverter = new FromGenericConverter();
+
 		Map<String, Object> headers = new LinkedHashMap<>();
-		for (Map.Entry<String, Generic> header : message.getHeadersMap().entrySet()) {
+		for (Map.Entry<String, HeaderValue> header : message.getHeadersMap().entrySet()) {
 			if (header.getKey().equals(MessageHeaders.ID)) {
-				headers.put(header.getKey(), UUID.fromString(fromGenericConverter.convert(header.getValue()).toString()));
+				headers.put(header.getKey(), UUID.fromString(header.getValue().getValues(0)));
+			}
+			else if (header.getKey().equals(MessageHeaders.TIMESTAMP)) {
+				headers.put(header.getKey(), Long.valueOf(header.getValue().getValues(0)));
 			}
 			else {
-				headers.put(header.getKey(), fromGenericConverter.convert(header.getValue()));
+				if (!header.getValue().getValuesList().isEmpty()) {
+					if (header.getValue().getValuesList().size() == 1) {
+						headers.put(header.getKey(), header.getValue().getValues(0));
+					}
+					else {
+						headers.put(header.getKey(), header.getValue().getValuesList());
+					}
+				}
 			}
 		}
 
-		return MutableMessageBuilder.withPayload(fromGenericConverter.convert(message.getPayload())).copyHeaders(headers)
-				.build();
+		return MutableMessageBuilder.withPayload(message.getPayload().toByteArray()).copyHeaders(headers).build();
 	}
+
 }
