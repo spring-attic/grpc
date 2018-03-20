@@ -28,19 +28,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.app.grpc.test.support.ProcessorServer;
-import org.springframework.cloud.stream.binder.test.InputDestination;
-import org.springframework.cloud.stream.binder.test.OutputDestination;
-import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
 import org.springframework.cloud.stream.messaging.Processor;
+import org.springframework.cloud.stream.test.binder.MessageCollector;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.GenericMessage;
@@ -48,33 +43,22 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.awt.*;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author David Turanski
  **/
-@SpringBootTest(classes = {GrpcProcessorTests.TestConfiguration.class},
-	webEnvironment = SpringBootTest.WebEnvironment
-	.NONE)
+@SpringBootTest(classes = GrpcProcessorTests.TestConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @RunWith(SpringRunner.class)
 public abstract class GrpcProcessorTests {
 	private static ProcessorServer server;
 	private static ManagedChannel inProcessChannel;
 	private static String serverName = UUID.randomUUID().toString();
-
-
-	@SpringBootApplication
-	@Import({TestChannelBinderConfiguration.class, GrpcProcessorConfiguration.class})
-	static class TestConfiguration {
-		@Bean
-		public Channel channel() {
-			return inProcessChannel;
-		}
-	}
 
 	@Autowired
 	private Environment environment;
@@ -96,19 +80,22 @@ public abstract class GrpcProcessorTests {
 	public static class ProcessorTests extends GrpcProcessorTests {
 
 		@Autowired
-		private InputDestination input;
+		private MessageCollector messageCollector;
 
 		@Autowired
-		private OutputDestination output;
+		private Processor processor;
 
 		@Test
 		public void test() throws InterruptedException {
-			input.send(new GenericMessage<>("hello".getBytes()));
-			Message<byte[]> response = output.receive(1);
-
-			assertThat(response.getPayload()).isEqualTo("HELLO".getBytes());
-			assertThat(response.getHeaders().getId()).isNotNull();
-			assertThat(response.getHeaders().getTimestamp()).isNotZero();
+			Message<?> request = MessageBuilder.withPayload("hello".getBytes()).copyHeaders(Collections.singletonMap(
+				MessageHeaders.CONTENT_TYPE, "application/octet-stream")).build();
+			processor.input().send(request);
+			Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
+			//TODO : The expected response is "HELLO".getBytes().  MessageCollector converts it to String, a real binder
+			// will not do that
+			assertThat(message.getPayload()).isEqualTo("HELLO");
+			assertThat(message.getHeaders().getId()).isNotNull();
+			assertThat(message.getHeaders().getTimestamp()).isNotZero();
 		}
 	}
 
@@ -116,64 +103,65 @@ public abstract class GrpcProcessorTests {
 	public static class ProcessorWithHeadersTests extends GrpcProcessorTests {
 
 		@Autowired
-		private InputDestination input;
+		private MessageCollector messageCollector;
 
 		@Autowired
-		private OutputDestination output;
+		private Processor processor;
+
+		@Autowired
+		private GrpcProperties properties;
 
 		@Test
 		public void test() throws InterruptedException {
-			doTest(input, output);
+
+			assertThat(properties.isIncludeHeaders()).isTrue();
+			doTest(messageCollector, processor);
+
 		}
 	}
 
-	@TestPropertySource(
-		properties = { "grpc.stub=async" ,
-		"logging.level.org.springframework.cloud.stream.binding=DEBUG"
-	})
+	@TestPropertySource(properties = { "grpc.stub=async" })
 	public static class AsyncProcessorTests extends GrpcProcessorTests {
 
 		@Autowired
-		private InputDestination input;
+		private MessageCollector messageCollector;
 
 		@Autowired
-		private OutputDestination output;
+		private Processor processor;
 
 		@Test
 		public void test() throws InterruptedException {
-			doTest(input, output);
+			doTest(messageCollector, processor);
 		}
 	}
 
-	protected void doTest(InputDestination input, OutputDestination output) throws InterruptedException {
+	protected void doTest(MessageCollector messageCollector, Processor processor) throws InterruptedException {
 		Map<String, Object> headers = new HashMap<>();
 		headers.put("int", 123);
 		headers.put("str", "string");
 		headers.put("pi", 3.14);
-		headers.put(HttpHeaders.ACCEPT, Stream.of("application/json","text/plain").toArray());
-		headers.put("string_list", Stream.of("application/json","text/plain").collect(Collectors.toList()));
-		headers.put("int_list", Stream.of(1,2,3).collect(Collectors.toList()));
-		headers.put(MessageHeaders.CONTENT_TYPE, "application/octet-stream");
-		headers.put("some_ints", Stream.of(1,2).toArray());
-
-		Message<byte[]> request = MessageBuilder.withPayload("hello".getBytes()).copyHeaders(headers).build();
-
-		input.send(request);
-		Message<byte[]> response = output.receive(1);
-
-		assertThat(response.getPayload()).isEqualTo("HELLO".getBytes());
-		assertThat(response.getHeaders().getId()).isNotNull();
-		assertThat(response.getHeaders().getTimestamp()).isNotZero();
-
+		processor.input().send(MessageBuilder.withPayload("hello".getBytes()).copyHeaders(headers).build());
+		Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
+		//TODO : The expected response is "HELLO".getBytes().  MessageCollector converts it to String, a real binder
+		// will not do that
+		assertThat(message.getPayload()).isEqualTo("HELLO");
+		assertThat(message.getHeaders().getId()).isNotNull();
+		assertThat(message.getHeaders().getTimestamp()).isNotZero();
 		if (environment.getProperty("grpc.include-headers", "false").equals("true")) {
-			assertThat(response.getHeaders().get("int")).isEqualTo(123);
-			assertThat(response.getHeaders().get("str")).isEqualTo("string");
-			assertThat(response.getHeaders().get("pi")).isEqualTo(3.14);
-			assertThat(response.getHeaders().get(HttpHeaders.ACCEPT)).asList().containsExactly("application/json","text/plain");
-			assertThat(response.getHeaders().get(MessageHeaders.CONTENT_TYPE)).isEqualTo("application/octet-stream");
+			assertThat(message.getHeaders().get("int")).isEqualTo(123);
+			assertThat(message.getHeaders().get("str")).isEqualTo("string");
+			assertThat(message.getHeaders().get("pi")).isEqualTo(3.14);
 		}
 	}
 
-
+	@Configuration
+	@EnableAutoConfiguration
+	@Import(GrpcProcessorConfiguration.class)
+	static class TestConfiguration {
+		@Bean
+		public Channel channel() {
+			return inProcessChannel;
+		}
+	}
 }
 

@@ -35,7 +35,6 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.stream.app.grpc.test.support.ProcessorServer;
-import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -100,7 +99,7 @@ public class PingTests {
 
 	@Configuration
 	@EnableAutoConfiguration
-	@Import({ GrpcProcessorConfiguration.class, TestChannelBinderConfiguration.class })
+	@Import({ GrpcProcessorConfiguration.class })
 	static class TestConfiguration {
 		@Bean
 		public Channel channel() {
