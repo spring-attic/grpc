@@ -91,8 +91,8 @@ public abstract class GrpcProcessorTests {
 				MessageHeaders.CONTENT_TYPE, "application/octet-stream")).build();
 			processor.input().send(request);
 			Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
-			//TODO : The expected response is "HELLO".getBytes().  MessageCollector converts it to String, a real binder
-			// will not do that
+			//TODO : The expected response is "HELLO".getBytes().  For convenience, MessageCollector converts it to
+			// String, a real binder will not do that.
 			assertThat(message.getPayload()).isEqualTo("HELLO");
 			assertThat(message.getHeaders().getId()).isNotNull();
 			assertThat(message.getHeaders().getTimestamp()).isNotZero();
@@ -142,8 +142,8 @@ public abstract class GrpcProcessorTests {
 		headers.put("pi", 3.14);
 		processor.input().send(MessageBuilder.withPayload("hello".getBytes()).copyHeaders(headers).build());
 		Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
-		//TODO : The expected response is "HELLO".getBytes().  MessageCollector converts it to String, a real binder
-		// will not do that
+		//TODO : The expected response is "HELLO".getBytes().  For convenience, MessageCollector converts it to
+		// String, a real binder will not do that.
 		assertThat(message.getPayload()).isEqualTo("HELLO");
 		assertThat(message.getHeaders().getId()).isNotNull();
 		assertThat(message.getHeaders().getTimestamp()).isNotZero();
