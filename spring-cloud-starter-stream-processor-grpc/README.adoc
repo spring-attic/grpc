@@ -1,0 +1,64 @@
+//tag::ref-doc[]
+= gRPC Processor
+
+This processor uses gRPC to process Messages via a remote process written in any language that supports gRPC. This
+pattern, commonly referred to as `sidecar` is intended to allow the Java app to handle the stream processing while
+the Polyglot sidecar application handles the business logic. The sidecar application must implement a
+link:https://grpc.io/[grpc] service using link:../grpc-app-protos/src/main/proto/processor.proto[this Google protocol
+buffers schema].
+
+[NOTE]
+====
+The gRPC client stub is blocking by default. An asynchronous stub is provided as an option. This might perform
+better under certain circumstances (e.g., if the server is multi-threaded) however message ordering will not be
+guaranteed.
+====
+
+== Input
+
+=== Headers
+Headers are available to the sidecar application via the link:../grpc-app-protos/src/main/proto/message.proto[message]
+schema if `grpc.include-headers` is `true`. Most common types are supported, however specific mapping of numeric types
+between Java and other languages
+varies among languages (for example some languages do not distinguish between long and short integers).
+
+=== Payload
+It is expected that the payload will normally be a string or byte array. However common primitive types are supported
+ as defined by the link:../grpc-app-protos/src/main/proto/message.proto[schema].
+
+== Output
+
+=== Headers
+In most cases the return message should simply contain the original headers provided.
+The sidecar application may modify or add headers however it is recommended to only add headers if necessary.
+
+=== Payload
+It is expected that the payload will normally be a string or byte array. However common primitive types are supported
+ as defined by the link:../grpc-app-protos/src/main/proto/message.proto[schema].
+
+== Options
+
+The **$$grpc$$** $$processor$$ has the following options:
+
+//tag::configuration-properties[]
+$$grpc.host$$:: $$The gRPC host name.$$ *($$String$$, default: `$$<none>$$`)*
+$$grpc.idle-timeout$$:: $$The idle timeout in seconds.$$ *($$Long$$, default: `$$0$$`)*
+$$grpc.include-headers$$:: $$Flag to include headers in Messages to the remote process.$$ *($$Boolean$$, default: `$$false$$`)*
+$$grpc.max-message-size$$:: $$The maximum message size (bytes).$$ *($$Integer$$, default: `$$0$$`)*
+$$grpc.plain-text$$:: $$Flag to send messages in plain text. SSL configuration required otherwise.$$ *($$Boolean$$, default: `$$true$$`)*
+$$grpc.port$$:: $$The gRPC server port.$$ *($$Integer$$, default: `$$0$$`)*
+$$grpc.stub$$:: $$RPC communications style (default 'blocking').$$ *($$Stub$$, default: `$$<none>$$`, possible values: `async`,`blocking`)*
+//end::configuration-properties[]
+
+//end::ref-doc[]
+== Build
+
+```
+$> mvn package
+```
+
+== Example
+
+```
+$java -jar grpc-processor.jar --grpc.host=somehost --grpc.port=1234
+```

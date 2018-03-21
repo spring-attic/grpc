@@ -1,0 +1,35 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+option java_multiple_files = true;
+option java_package = "org.springframework.cloud.stream.app.grpc.processor";
+option java_outer_classname = "ProcessorProtos";
+
+package processor;
+
+service Processor {
+  rpc Ping(google.protobuf.Empty) returns (Status) {}
+  rpc Process(Message) returns (Message) {}
+}
+
+message Status {
+	string message = 1;
+}
+
+
+// The message containing payload and headers.
+message Message {
+  Generic payload = 20;
+  map<string, Generic> headers = 21;
+}
+
+message Generic {
+    oneof type {
+        string string = 1;
+        bytes bytes = 2;
+        int64 long = 3;
+        int32 int = 4;
+        bool  bool = 5;
+        double double = 6;
+        float float = 7;
+    }
+}
