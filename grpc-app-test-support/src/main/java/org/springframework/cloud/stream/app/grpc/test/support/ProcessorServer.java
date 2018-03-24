@@ -16,14 +16,17 @@
 
 package org.springframework.cloud.stream.app.grpc.test.support;
 
+import com.google.protobuf.ByteString;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
-import org.springframework.cloud.stream.app.grpc.processor.Status;
+import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message;
+import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Status;
+import org.springframework.cloud.stream.app.grpc.processor.ReactorProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
+import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,7 +40,11 @@ public class ProcessorServer {
 
 	public ProcessorServer(ServerBuilder<?> serverBuilder) {
 
-		server = serverBuilder.addService(new ProcessorService()).build();
+		server = serverBuilder
+			.addService(new ProcessorService())
+			.addService(new ReactiveProcessorService())
+			.build();
+
 	}
 
 	/**
@@ -81,8 +88,7 @@ public class ProcessorServer {
 			observer.onCompleted();
 		}
 
-		public void ping(com.google.protobuf.Empty request,
-			io.grpc.stub.StreamObserver<org.springframework.cloud.stream.app.grpc.processor.Status> responseObserver) {
+		public void ping(com.google.protobuf.Empty request, io.grpc.stub.StreamObserver<Status> responseObserver) {
 			System.out.println(pingCount.get());
 			if (pingCount.incrementAndGet() == MAX_PINGS) {
 				pingCount.set(0);
@@ -90,6 +96,38 @@ public class ProcessorServer {
 			}
 			responseObserver.onNext(Status.newBuilder().setMessage("alive").build());
 			responseObserver.onCompleted();
+		}
+
+		@Override
+		public StreamObserver<Message> stream(final StreamObserver<Message> responseObserver) {
+			System.out.println("Calling stream with StreamObserver");
+			return new StreamObserver<Message>() {
+				@Override
+				public void onNext(Message message) {
+					responseObserver.onNext(Message.newBuilder()
+						.setPayload(ByteString.copyFromUtf8(message.getPayload().toStringUtf8().toUpperCase()))
+						.build());
+				}
+
+				@Override
+				public void onError(Throwable throwable) {
+					responseObserver.onError(throwable);
+				}
+
+				@Override
+				public void onCompleted() {
+					responseObserver.onCompleted();
+				}
+			};
+		}
+	}
+
+	public static class ReactiveProcessorService extends ReactorProcessorGrpc.ProcessorImplBase {
+		@Override
+		public Flux<Message> stream(Flux<Message> input) {
+			System.out.println("Calling stream with Flux");
+			return input.log().map(m -> Message.newBuilder()
+				.setPayload(ByteString.copyFromUtf8(m.getPayload().toStringUtf8().toUpperCase())).build());
 		}
 	}
 }

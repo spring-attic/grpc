@@ -38,12 +38,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.support.GenericMessage;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.awt.*;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -87,8 +85,8 @@ public abstract class GrpcProcessorTests {
 
 		@Test
 		public void test() throws InterruptedException {
-			Message<?> request = MessageBuilder.withPayload("hello".getBytes()).copyHeaders(Collections.singletonMap(
-				MessageHeaders.CONTENT_TYPE, "application/octet-stream")).build();
+			Message<?> request = MessageBuilder.withPayload("hello".getBytes())
+				.copyHeaders(Collections.singletonMap(MessageHeaders.CONTENT_TYPE, "application/octet-stream")).build();
 			processor.input().send(request);
 			Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
 			//TODO : The expected response is "HELLO".getBytes().  For convenience, MessageCollector converts it to

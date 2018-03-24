@@ -77,7 +77,7 @@ public class PingTests {
 	public void ping() {
 
 		for (int i = 0; i < 2; i++) {
-			Status status = pingStub.ping(Empty.getDefaultInstance());
+			ProcessorProtos.Status status = pingStub.ping(Empty.getDefaultInstance());
 			assertThat(status.getMessage()).isEqualTo("alive");
 		}
 

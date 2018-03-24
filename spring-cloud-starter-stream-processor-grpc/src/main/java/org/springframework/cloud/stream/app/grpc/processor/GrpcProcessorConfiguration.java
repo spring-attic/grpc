@@ -26,6 +26,8 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.annotation.Input;
+import org.springframework.cloud.stream.annotation.Output;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.app.grpc.support.MessageUtils;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
@@ -35,6 +37,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.handler.annotation.SendTo;
+import reactor.core.publisher.Flux;
 
 import java.util.concurrent.TimeUnit;
 
@@ -65,9 +68,9 @@ public class GrpcProcessorConfiguration {
 		public Object process(final Message<?> request) {
 			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
 
-			org.springframework.cloud.stream.app.grpc.processor.Message protobufMessage = properties.isIncludeHeaders() ?
+			ProcessorProtos.Message protobufMessage = properties.isIncludeHeaders() ?
 				protobufMessageBuilder.fromMessage(request).build() :
-				protobufMessageBuilder.withPayload((byte[])request.getPayload()).build();
+				protobufMessageBuilder.withPayload((byte[]) request.getPayload()).build();
 
 			return MessageUtils.toMessage(processorStub.process(protobufMessage));
 		}
@@ -95,15 +98,16 @@ public class GrpcProcessorConfiguration {
 		public void process(final Message<?> request) {
 			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
 
-			org.springframework.cloud.stream.app.grpc.processor.Message protobufMessage = properties.isIncludeHeaders() ?
+			org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message protobufMessage = properties
+				.isIncludeHeaders() ?
 				protobufMessageBuilder.fromMessage(request).build() :
-				protobufMessageBuilder.withPayload((byte[])request.getPayload()).build();
+				protobufMessageBuilder.withPayload((byte[]) request.getPayload()).build();
 
 			processorStub.process(protobufMessage,
-				new StreamObserver<org.springframework.cloud.stream.app.grpc.processor.Message>() {
+				new StreamObserver<org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message>() {
 
 					@Override
-					public void onNext(org.springframework.cloud.stream.app.grpc.processor.Message message) {
+					public void onNext(ProcessorProtos.Message message) {
 						channels.output().send(MessageUtils.toMessage(message));
 					}
 
@@ -119,6 +123,32 @@ public class GrpcProcessorConfiguration {
 				});
 		}
 
+	}
+
+	@Configuration
+	@ConditionalOnProperty(value = "grpc.stub", havingValue = "streaming")
+	static class StreamingStubConfiguration {
+		@Autowired
+		private ReactorProcessorGrpc.ReactorProcessorStub processorStub;
+
+		@Autowired
+		private GrpcProperties properties;
+
+		@Bean
+		public ReactorProcessorGrpc.ReactorProcessorStub processorStub(Channel grpcChannel) {
+			return ReactorProcessorGrpc.newReactorStub(grpcChannel);
+		}
+
+		@StreamListener
+		@Output(Processor.OUTPUT)
+		public Flux<Message<?>> process(@Input(Processor.INPUT) final Flux<Message<?>> request) {
+			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
+			return processorStub.stream(request
+				.map( message -> properties.isIncludeHeaders()
+					? protobufMessageBuilder.fromMessage(message).build()
+					: protobufMessageBuilder.withPayload((byte[]) message.getPayload()).build())
+			).map(MessageUtils::toMessage);
+		}
 	}
 
 	@Bean
@@ -143,18 +173,15 @@ public class GrpcProcessorConfiguration {
 
 	@Bean
 	public HealthIndicator sideCarHealthIndicator(final ProcessorGrpc.ProcessorBlockingStub pingStub) {
-		return new HealthIndicator() {
-			@Override
-			public Health health() {
-				try {
-					Status status = pingStub.ping(Empty.getDefaultInstance());
-					return Health.status(status.getMessage()).build();
-				}
-				catch (Exception e) {
-					return Health.down().build();
-				}
-
+		return () -> {
+			try {
+				ProcessorProtos.Status status = pingStub.ping(Empty.getDefaultInstance());
+				return Health.status(status.getMessage()).build();
 			}
+			catch (Exception e) {
+				return Health.down().build();
+			}
+
 		};
 	}
 }

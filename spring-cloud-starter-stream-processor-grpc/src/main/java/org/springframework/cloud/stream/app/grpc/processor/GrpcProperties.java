@@ -25,7 +25,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "grpc")
 public class GrpcProperties {
 
-	public enum Stub {async, blocking}
+	public enum Stub {async, blocking,streaming}
 	/**
 	 * The gRPC host name.
 	 */

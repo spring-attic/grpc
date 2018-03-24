@@ -19,7 +19,7 @@ package org.springframework.cloud.stream.app.grpc.support;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
-import org.springframework.cloud.stream.app.grpc.processor.Message;
+import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 

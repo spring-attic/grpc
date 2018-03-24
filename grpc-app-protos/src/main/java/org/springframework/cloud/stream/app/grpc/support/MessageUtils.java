@@ -16,8 +16,8 @@
 
 package org.springframework.cloud.stream.app.grpc.support;
 
-import org.springframework.cloud.stream.app.grpc.processor.HeaderValue;
-import org.springframework.cloud.stream.app.grpc.processor.Message;
+import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.HeaderValue;
+import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message;
 import org.springframework.integration.support.MutableMessageBuilder;
 import org.springframework.messaging.MessageHeaders;
 

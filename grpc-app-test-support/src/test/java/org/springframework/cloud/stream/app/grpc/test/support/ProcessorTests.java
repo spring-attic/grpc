@@ -20,17 +20,29 @@ package org.springframework.cloud.stream.app.grpc.test.support;
  * @author David Turanski
  **/
 
+import static org.assertj.core.api.Fail.fail;
+import static org.assertj.core.api.Java6Assertions.assertThat;
+
 import io.grpc.ManagedChannel;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
+import io.grpc.stub.StreamObserver;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.cloud.stream.app.grpc.processor.Message;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
+import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message;
+import org.springframework.cloud.stream.app.grpc.processor.ReactorProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
 import org.springframework.messaging.support.GenericMessage;
+import reactor.core.publisher.Flux;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Unit tests for {@link ProcessorServer}.
@@ -40,32 +52,81 @@ public class ProcessorTests {
 	private ProcessorServer server;
 	private ManagedChannel inProcessChannel;
 
+	private Executor executor = Executors.newCachedThreadPool();
+
 	@Before
 	public void setUp() throws Exception {
 		String uniqueServerName = "in-process server for " + getClass();
 
 		server = new ProcessorServer(InProcessServerBuilder.forName(uniqueServerName).directExecutor());
 		server.start();
-		inProcessChannel = InProcessChannelBuilder.forName(uniqueServerName).directExecutor().build();
+		inProcessChannel = InProcessChannelBuilder.forName(uniqueServerName).executor(executor).build();
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		inProcessChannel.shutdownNow();
+		inProcessChannel.shutdown();
+		inProcessChannel.awaitTermination(1, TimeUnit.SECONDS);
 		server.stop();
 	}
 
 	@Test
 	public void process() {
 
-		Message message = new ProtobufMessageBuilder().fromMessage(new GenericMessage<>("hello, world".getBytes())).build();
+		Message message = new ProtobufMessageBuilder().fromMessage(new GenericMessage<>("hello, world".getBytes()))
+			.build();
 
 		ProcessorGrpc.ProcessorBlockingStub stub = ProcessorGrpc.newBlockingStub(inProcessChannel);
 
 		Message response = stub.process(message);
 
-
 		Assert.assertEquals("HELLO, WORLD", response.getPayload().toStringUtf8());
 	}
 
+	@Test
+	public void stream() {
+
+		StreamObserver<Message> responseObserver = new StreamObserver<Message>() {
+			List<String> responses = new LinkedList<>();
+
+			@Override
+			public void onNext(Message message) {
+				responses.add(message.getPayload().toStringUtf8());
+			}
+
+			@Override
+			public void onError(Throwable throwable) {
+				fail(throwable.getMessage());
+			}
+
+			@Override
+			public void onCompleted() {
+				assertThat(responses).containsExactly("APPLE", "BANANA");
+
+			}
+		};
+		ProcessorGrpc.ProcessorStub stub = ProcessorGrpc.newStub(inProcessChannel);
+
+		StreamObserver<Message> requestObserver = stub.stream(responseObserver);
+
+		requestObserver
+			.onNext(new ProtobufMessageBuilder().fromMessage(new GenericMessage<>("apple".getBytes())).build());
+		requestObserver
+			.onNext(new ProtobufMessageBuilder().fromMessage(new GenericMessage<>("banana".getBytes())).build());
+		requestObserver.onCompleted();
+	}
+
+	@Test
+	public void reactiveStream() throws InterruptedException {
+
+		ReactorProcessorGrpc.ReactorProcessorStub stub = ReactorProcessorGrpc.newReactorStub(inProcessChannel);
+
+		Flux<Message> input = Flux
+			.just(new ProtobufMessageBuilder().fromMessage(new GenericMessage<>("apple".getBytes())).build(),
+				new ProtobufMessageBuilder().fromMessage(new GenericMessage<>("banana".getBytes())).build());
+
+		Flux<Message> output = stub.stream(input);
+		output.subscribe(System.out::println);
+
+	}
 }

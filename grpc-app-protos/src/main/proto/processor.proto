@@ -1,6 +1,6 @@
 syntax = "proto3";
 import "google/protobuf/empty.proto";
-option java_multiple_files = true;
+option java_multiple_files = false;
 option java_package = "org.springframework.cloud.stream.app.grpc.processor";
 option java_outer_classname = "ProcessorProtos";
 

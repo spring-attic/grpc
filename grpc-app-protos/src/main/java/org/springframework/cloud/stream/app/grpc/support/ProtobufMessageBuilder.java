@@ -19,13 +19,12 @@ package org.springframework.cloud.stream.app.grpc.support;
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.cloud.stream.app.grpc.processor.HeaderValue;
-import org.springframework.cloud.stream.app.grpc.processor.Message;
+import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.HeaderValue;
+import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.Assert;
 import org.springframework.util.MimeType;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -76,19 +75,21 @@ public class ProtobufMessageBuilder {
 
 					}
 					catch (ClassCastException e1) {
-						logger.warn(String.format("Header %s is not mapped to gRPC message. Unsupported element type", e.getKey()));
+						logger.warn(String
+							.format("Header %s is not mapped to gRPC message. Unsupported element type", e.getKey()));
 					}
 				}
 				else if (e.getValue().getClass().isArray()) {
-					Object[] array = (Object[])e.getValue();
-					for (Object obj: array) {
+					Object[] array = (Object[]) e.getValue();
+					for (Object obj : array) {
 						builder.addValues(obj.toString());
 					}
 				}
 				else {
 					if (e.getValue() != null) {
-						logger.warn(String.format("Header %s is not mapped  to gRPC message. Unsupported type %s", e.getKey(),
-							e.getValue().getClass().getName()));
+						logger.warn(String
+							.format("Header %s is not mapped  to gRPC message. Unsupported type %s", e.getKey(),
+								e.getValue().getClass().getName()));
 					}
 				}
 				return builder.build();
