@@ -1,5 +1,6 @@
 package org.springframework.cloud.stream.app.grpc.test.support;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos;
 import org.springframework.cloud.stream.app.grpc.processor.ReactorProcessorGrpc;
@@ -12,11 +13,11 @@ import reactor.test.StepVerifier;
  * @author David Turanski
  **/
 public class ReactorProcessorTests extends AbstractProcessorTest {
-	ReactorProcessorServer server = new ReactorProcessorServer();
 
-	@Override
-	protected AbstractGrpcServer getServer() {
-		return server;
+
+	@BeforeClass
+	public static void setup() throws Exception {
+		init(new ReactorProcessorServer());
 	}
 
 	@Test

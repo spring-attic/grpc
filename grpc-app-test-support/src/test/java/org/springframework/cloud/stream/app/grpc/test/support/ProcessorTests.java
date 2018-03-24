@@ -25,6 +25,7 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 
 import io.grpc.stub.StreamObserver;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos;
@@ -43,11 +44,11 @@ import java.util.List;
  */
 
 public class ProcessorTests extends AbstractProcessorTest {
-	private ProcessorServer server = new ProcessorServer();
 
-	@Override
-	protected AbstractGrpcServer getServer() {
-		return server;
+
+	@BeforeClass
+	public static void setup() throws Exception {
+		init(new ProcessorServer());
 	}
 
 	@Test

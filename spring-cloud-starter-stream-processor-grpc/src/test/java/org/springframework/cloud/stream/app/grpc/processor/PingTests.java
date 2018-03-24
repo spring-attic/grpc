@@ -34,10 +34,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cloud.stream.app.grpc.test.support.AbstractProcessorTest;
 import org.springframework.cloud.stream.app.grpc.test.support.ProcessorServer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.core.parameters.P;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.UUID;
@@ -47,10 +49,7 @@ import java.util.UUID;
  **/
 @SpringBootTest(classes = PingTests.TestConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @RunWith(SpringRunner.class)
-public class PingTests {
-	private static ProcessorServer server;
-	private static ManagedChannel inProcessChannel;
-	private static String serverName = UUID.randomUUID().toString();
+public class PingTests extends AbstractProcessorTest {
 
 	@Autowired
 	@Qualifier("sideCarHealthIndicator")
@@ -58,17 +57,9 @@ public class PingTests {
 
 	@BeforeClass
 	public static void setUp() throws Exception {
-
-		server = new ProcessorServer(InProcessServerBuilder.forName(serverName).directExecutor());
-		server.start();
-		inProcessChannel = InProcessChannelBuilder.forName(serverName).directExecutor().build();
+		init(new ProcessorServer());
 	}
 
-	@AfterClass
-	public static void tearDown() throws Exception {
-		inProcessChannel.shutdownNow();
-		server.stop();
-	}
 
 	@Autowired
 	private ProcessorGrpc.ProcessorBlockingStub pingStub;
@@ -103,7 +94,7 @@ public class PingTests {
 	static class TestConfiguration {
 		@Bean
 		public Channel channel() {
-			return inProcessChannel;
+			return AbstractProcessorTest.getChannel();
 		}
 	}
 

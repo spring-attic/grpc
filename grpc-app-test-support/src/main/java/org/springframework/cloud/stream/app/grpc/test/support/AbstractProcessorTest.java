@@ -3,7 +3,8 @@ package org.springframework.cloud.stream.app.grpc.test.support;
 import io.grpc.ManagedChannel;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -14,28 +15,27 @@ import java.util.concurrent.TimeUnit;
  **/
 public abstract class AbstractProcessorTest {
 
-	private ManagedChannel inProcessChannel;
+	private static ManagedChannel inProcessChannel;
 
-	private Executor executor = Executors.newCachedThreadPool();
+	private static Executor executor = Executors.newCachedThreadPool();
 
-	protected abstract AbstractGrpcServer getServer();
+	protected static AbstractGrpcServer server;
 
-
-	@Before
-	public void setUp() throws Exception {
-		getServer().start();
-		inProcessChannel = InProcessChannelBuilder.forName(getServer().getName()).executor(executor).build();
+	public static void init(AbstractGrpcServer grpcServer) throws Exception {
+		server = grpcServer;
+		server.start();
+		inProcessChannel = InProcessChannelBuilder.forName(server.getName()).executor(executor).build();
 	}
 
-	@After
-	public void tearDown() throws Exception {
+	@AfterClass
+	public static void tearDown() throws Exception {
 
 		inProcessChannel.shutdown();
 		inProcessChannel.awaitTermination(1, TimeUnit.SECONDS);
-		getServer().stop();
+		server.stop();
 	}
 
-	protected ManagedChannel getChannel() {
+	protected static ManagedChannel getChannel() {
 		return inProcessChannel;
 	}
 

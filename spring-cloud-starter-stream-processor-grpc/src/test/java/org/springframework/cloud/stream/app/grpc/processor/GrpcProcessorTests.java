@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -29,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cloud.stream.app.grpc.test.support.AbstractProcessorTest;
 import org.springframework.cloud.stream.app.grpc.test.support.ProcessorServer;
 import org.springframework.cloud.stream.messaging.Processor;
 import org.springframework.cloud.stream.test.binder.MessageCollector;
@@ -45,7 +45,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -53,27 +52,17 @@ import java.util.concurrent.TimeUnit;
  **/
 @SpringBootTest(classes = GrpcProcessorTests.TestConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @RunWith(SpringRunner.class)
-public abstract class GrpcProcessorTests {
-	private static ProcessorServer server;
-	private static ManagedChannel inProcessChannel;
-	private static String serverName = UUID.randomUUID().toString();
+public abstract class GrpcProcessorTests extends AbstractProcessorTest {
+
 
 	@Autowired
 	private Environment environment;
 
 	@BeforeClass
 	public static void setUp() throws Exception {
-
-		server = new ProcessorServer(InProcessServerBuilder.forName(serverName).directExecutor());
-		server.start();
-		inProcessChannel = InProcessChannelBuilder.forName(serverName).directExecutor().build();
+		init(new ProcessorServer());
 	}
 
-	@AfterClass
-	public static void tearDown() throws Exception {
-		inProcessChannel.shutdownNow();
-		server.stop();
-	}
 
 	public static class ProcessorTests extends GrpcProcessorTests {
 
@@ -86,7 +75,8 @@ public abstract class GrpcProcessorTests {
 		@Test
 		public void test() throws InterruptedException {
 			Message<?> request = MessageBuilder.withPayload("hello".getBytes())
-				.copyHeaders(Collections.singletonMap(MessageHeaders.CONTENT_TYPE, "application/octet-stream")).build();
+				.copyHeaders(Collections.singletonMap(MessageHeaders.CONTENT_TYPE, "application/octet-stream"))
+				.build();
 			processor.input().send(request);
 			Message<?> message = messageCollector.forChannel(processor.output()).poll(2, TimeUnit.SECONDS);
 			//TODO : The expected response is "HELLO".getBytes().  For convenience, MessageCollector converts it to
@@ -158,7 +148,7 @@ public abstract class GrpcProcessorTests {
 	static class TestConfiguration {
 		@Bean
 		public Channel channel() {
-			return inProcessChannel;
+			return AbstractProcessorTest.getChannel();
 		}
 	}
 }
