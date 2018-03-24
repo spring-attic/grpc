@@ -17,60 +17,24 @@
 package org.springframework.cloud.stream.app.grpc.test.support;
 
 import com.google.protobuf.ByteString;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import io.grpc.BindableService;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Status;
-import org.springframework.cloud.stream.app.grpc.processor.ReactorProcessorGrpc;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
-import reactor.core.publisher.Flux;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author David Turanski
  **/
-public class ProcessorServer {
+public class ProcessorServer extends AbstractGrpcServer {
 
-	private final Server server;
-
-	public ProcessorServer(ServerBuilder<?> serverBuilder) {
-
-		server = serverBuilder
-			.addService(new ProcessorService())
-			.addService(new ReactiveProcessorService())
-			.build();
-
-	}
-
-	/**
-	 * Start serving requests.
-	 */
-	public void start() throws IOException {
-		server.start();
-
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				// Use stderr here since the logger may has been reset by its JVM shutdown hook.
-				System.err.println("*** shutting down gRPC server since JVM is shutting down");
-				ProcessorServer.this.stop();
-				System.err.println("*** server shut down");
-			}
-		});
-	}
-
-	/**
-	 * Stop serving requests and shutdown resources.
-	 */
-	public void stop() {
-		if (server != null) {
-			server.shutdown();
-		}
+	@Override
+	protected BindableService getService() {
+		return new ProcessorService();
 	}
 
 	public static class ProcessorService extends ProcessorGrpc.ProcessorImplBase {
@@ -82,7 +46,8 @@ public class ProcessorServer {
 			String result = new String(message.getPayload().toStringUtf8());
 
 			Message response = new ProtobufMessageBuilder().withPayload(result.toUpperCase().getBytes())
-				.withProtobufHeaders(message.getHeadersMap()).build();
+				.withProtobufHeaders(message.getHeadersMap())
+				.build();
 
 			observer.onNext(response);
 			observer.onCompleted();
@@ -100,7 +65,6 @@ public class ProcessorServer {
 
 		@Override
 		public StreamObserver<Message> stream(final StreamObserver<Message> responseObserver) {
-			System.out.println("Calling stream with StreamObserver");
 			return new StreamObserver<Message>() {
 				@Override
 				public void onNext(Message message) {
@@ -122,12 +86,4 @@ public class ProcessorServer {
 		}
 	}
 
-	public static class ReactiveProcessorService extends ReactorProcessorGrpc.ProcessorImplBase {
-		@Override
-		public Flux<Message> stream(Flux<Message> input) {
-			System.out.println("Calling stream with Flux");
-			return input.log().map(m -> Message.newBuilder()
-				.setPayload(ByteString.copyFromUtf8(m.getPayload().toStringUtf8().toUpperCase())).build());
-		}
-	}
 }

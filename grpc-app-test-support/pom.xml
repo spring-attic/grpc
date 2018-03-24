@@ -21,6 +21,11 @@
 			<groupId>org.springframework.cloud.stream.app</groupId>
 			<artifactId>grpc-app-protos</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 </project>
