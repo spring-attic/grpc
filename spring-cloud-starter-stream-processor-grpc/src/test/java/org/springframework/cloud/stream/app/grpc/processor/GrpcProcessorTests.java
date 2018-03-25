@@ -19,9 +19,6 @@ package org.springframework.cloud.stream.app.grpc.processor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.grpc.Channel;
-import io.grpc.ManagedChannel;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,9 +35,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.support.GenericMessage;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
+import reactor.core.publisher.Flux;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 @RunWith(SpringRunner.class)
 public abstract class GrpcProcessorTests extends AbstractProcessorTest {
 
-
 	@Autowired
 	private Environment environment;
 
@@ -62,7 +60,6 @@ public abstract class GrpcProcessorTests extends AbstractProcessorTest {
 	public static void setUp() throws Exception {
 		init(new ProcessorServer());
 	}
-
 
 	public static class ProcessorTests extends GrpcProcessorTests {
 
@@ -121,6 +118,7 @@ public abstract class GrpcProcessorTests extends AbstractProcessorTest {
 		public void test() throws InterruptedException {
 			doTest(messageCollector, processor);
 		}
+
 	}
 
 	@TestPropertySource(properties = { "grpc.stub=streaming" })
@@ -135,6 +133,17 @@ public abstract class GrpcProcessorTests extends AbstractProcessorTest {
 		@Test
 		public void test() throws InterruptedException {
 			doTest(messageCollector, processor);
+		}
+
+		@Test
+		public void streaming() throws InterruptedException {
+			processor.input().send(new GenericMessage(Flux.just("apple".getBytes(), "banana".getBytes()).share()));
+			Message<?> message;
+			message = messageCollector.forChannel(processor.output()).take();
+			assertThat(message.getPayload()).isEqualTo("APPLE");
+			message = messageCollector.forChannel(processor.output()).take();
+			assertThat(message.getPayload()).isEqualTo("BANANA");
+
 		}
 	}
 

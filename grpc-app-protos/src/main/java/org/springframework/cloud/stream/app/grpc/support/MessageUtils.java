@@ -29,7 +29,7 @@ import java.util.UUID;
  * @author David Turanski
  **/
 public abstract class MessageUtils {
-	public static org.springframework.messaging.Message<?> toMessage(Message message) {
+	public static org.springframework.messaging.Message<byte[]> toMessage(Message message) {
 
 		Map<String, Object> headers = new LinkedHashMap<>();
 		for (Map.Entry<String, HeaderValue> header : message.getHeadersMap().entrySet()) {

@@ -37,6 +37,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.support.MessageBuilder;
 import reactor.core.publisher.Flux;
 
 import java.util.concurrent.TimeUnit;
@@ -51,7 +52,7 @@ public class GrpcProcessorConfiguration {
 
 	@Configuration
 	@ConditionalOnProperty(value = "grpc.stub", havingValue = "blocking", matchIfMissing = true)
-	public static class BlockingStubConfiguration {
+	static class BlockingStubConfiguration {
 		@Autowired
 		private ProcessorGrpc.ProcessorBlockingStub processorStub;
 
@@ -98,8 +99,7 @@ public class GrpcProcessorConfiguration {
 		public void process(final Message<?> request) {
 			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
 
-			org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message protobufMessage = properties
-				.isIncludeHeaders() ?
+			org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message protobufMessage = properties.isIncludeHeaders() ?
 				protobufMessageBuilder.fromMessage(request).build() :
 				protobufMessageBuilder.withPayload((byte[]) request.getPayload()).build();
 
@@ -141,22 +141,36 @@ public class GrpcProcessorConfiguration {
 
 		@StreamListener
 		@Output(Processor.OUTPUT)
-		public Flux<Message<?>> process(@Input(Processor.INPUT) final Flux<Message<?>> request) {
+		public Flux<Message<byte[]>> single(@Input(Processor.INPUT) final Flux<Message<byte[]>> request) {
+
 			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
-			return processorStub.stream(request
-				.map( message -> properties.isIncludeHeaders()
-					? protobufMessageBuilder.fromMessage(message).build()
-					: protobufMessageBuilder.withPayload((byte[]) message.getPayload()).build())
-			).map(MessageUtils::toMessage);
+			return processorStub.stream(request.map(message -> properties.isIncludeHeaders() ?
+				protobufMessageBuilder.fromMessage(message).build() :
+				protobufMessageBuilder.withPayload(message.getPayload()).build())).map(MessageUtils::toMessage);
+		}
+
+		@StreamListener
+		@Output(Processor.OUTPUT)
+		public Flux<Message<byte[]>> processFlux(@Input(Processor.INPUT) final Flux<Message<Flux<byte[]>>> request) {
+
+			Flux<Message<byte[]>> flux = request.flatMap(m -> {
+				Flux<byte[]> payloads = m.getPayload();
+				return payloads.map(p -> MessageBuilder.withPayload(p).copyHeaders(m.getHeaders()).build());
+			});
+
+			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
+
+			return processorStub.stream(flux.map(message -> properties.isIncludeHeaders() ?
+				protobufMessageBuilder.fromMessage(message).build() :
+				protobufMessageBuilder.withPayload(message.getPayload()).build())).share().map(MessageUtils::toMessage);
 		}
 	}
 
 	@Bean
 	@ConditionalOnProperty(name = "grpc.host")
 	public Channel grpcChannel(GrpcProperties properties) {
-		ManagedChannelBuilder<?> managedChannelBuilder = ManagedChannelBuilder
-			.forAddress(properties.getHost(), properties.getPort()).usePlaintext(properties.isPlainText())
-			.directExecutor();
+		ManagedChannelBuilder<?> managedChannelBuilder = ManagedChannelBuilder.forAddress(properties.getHost(),
+			properties.getPort()).usePlaintext(properties.isPlainText()).directExecutor();
 		if (properties.getIdleTimeout() > 0) {
 			managedChannelBuilder = managedChannelBuilder.idleTimeout(properties.getIdleTimeout(), TimeUnit.SECONDS);
 		}
