@@ -51,7 +51,7 @@ public class GrpcProcessorConfiguration {
 
 	@Configuration
 	@ConditionalOnProperty(value = "grpc.stub", havingValue = "blocking", matchIfMissing = true)
-	static class BlockingStubConfiguration {
+	public static class BlockingStubConfiguration {
 		@Autowired
 		private ProcessorGrpc.ProcessorBlockingStub processorStub;
 
@@ -78,7 +78,7 @@ public class GrpcProcessorConfiguration {
 
 	@Configuration
 	@ConditionalOnProperty(value = "grpc.stub", havingValue = "async")
-	static class AsyncStubConfiguration {
+	public static class AsyncStubConfiguration {
 
 		@Autowired
 		private ProcessorGrpc.ProcessorStub processorStub;
@@ -127,7 +127,7 @@ public class GrpcProcessorConfiguration {
 
 	@Configuration
 	@ConditionalOnProperty(value = "grpc.stub", havingValue = "streaming")
-	static class StreamingStubConfiguration {
+	public static class StreamingStubConfiguration {
 		@Autowired
 		private ReactorProcessorGrpc.ReactorProcessorStub processorStub;
 
@@ -167,7 +167,7 @@ public class GrpcProcessorConfiguration {
 	}
 
 	@Bean
-	ProcessorGrpc.ProcessorBlockingStub pingStub(Channel grpcChannel) {
+	public ProcessorGrpc.ProcessorBlockingStub pingStub(Channel grpcChannel) {
 		return ProcessorGrpc.newBlockingStub(grpcChannel);
 	}
 

@@ -123,6 +123,21 @@ public abstract class GrpcProcessorTests extends AbstractProcessorTest {
 		}
 	}
 
+	@TestPropertySource(properties = { "grpc.stub=streaming" })
+	public static class StreamingProcessorTests extends GrpcProcessorTests {
+
+		@Autowired
+		private MessageCollector messageCollector;
+
+		@Autowired
+		private Processor processor;
+
+		@Test
+		public void test() throws InterruptedException {
+			doTest(messageCollector, processor);
+		}
+	}
+
 	protected void doTest(MessageCollector messageCollector, Processor processor) throws InterruptedException {
 		Map<String, Object> headers = new HashMap<>();
 		headers.put("int", 123);
