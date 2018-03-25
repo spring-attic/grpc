@@ -9,9 +9,9 @@ buffers schema].
 
 [NOTE]
 ====
-The gRPC client stub is blocking by default. An asynchronous stub is provided as an option. This might perform
-better under certain circumstances (e.g., if the server is multi-threaded) however message ordering will not be
-guaranteed.
+The gRPC client stub is blocking by default. Asynchronous and streaming stubs are provided. The Asynchronous stub will
+perform better if the server is multi-threaded however message ordering will not be guaranteed. If the server
+supports bidirectional streaming, use the streaming stub.
 ====
 
 == Input
@@ -45,7 +45,7 @@ $$grpc.include-headers$$:: $$Flag to include headers in Messages to the remote p
 $$grpc.max-message-size$$:: $$The maximum message size (bytes).$$ *($$Integer$$, default: `$$0$$`)*
 $$grpc.plain-text$$:: $$Flag to send messages in plain text. SSL configuration required otherwise.$$ *($$Boolean$$, default: `$$true$$`)*
 $$grpc.port$$:: $$The gRPC server port.$$ *($$Integer$$, default: `$$0$$`)*
-$$grpc.stub$$:: $$RPC communications style (default 'blocking').$$ *($$Stub$$, default: `$$<none>$$`, possible values: `async`,`blocking`)*
+$$grpc.stub$$:: $$RPC communications style (default 'blocking').$$ *($$Stub$$, default: `$$<none>$$`, possible values: `async`,`blocking`,`streaming`)*
 //end::configuration-properties[]
 
 //end::ref-doc[]

@@ -134,17 +134,6 @@ public abstract class GrpcProcessorTests extends AbstractProcessorTest {
 		public void test() throws InterruptedException {
 			doTest(messageCollector, processor);
 		}
-
-		@Test
-		public void streaming() throws InterruptedException {
-			processor.input().send(new GenericMessage(Flux.just("apple".getBytes(), "banana".getBytes()).share()));
-			Message<?> message;
-			message = messageCollector.forChannel(processor.output()).take();
-			assertThat(message.getPayload()).isEqualTo("APPLE");
-			message = messageCollector.forChannel(processor.output()).take();
-			assertThat(message.getPayload()).isEqualTo("BANANA");
-
-		}
 	}
 
 	protected void doTest(MessageCollector messageCollector, Processor processor) throws InterruptedException {

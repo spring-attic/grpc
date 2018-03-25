@@ -37,7 +37,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.support.MessageBuilder;
 import reactor.core.publisher.Flux;
 
 import java.util.concurrent.TimeUnit;
@@ -141,28 +140,12 @@ public class GrpcProcessorConfiguration {
 
 		@StreamListener
 		@Output(Processor.OUTPUT)
-		public Flux<Message<byte[]>> single(@Input(Processor.INPUT) final Flux<Message<byte[]>> request) {
+		public Flux<Message<byte[]>> process(@Input(Processor.INPUT) final Flux<Message<byte[]>> request) {
 
 			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
 			return processorStub.stream(request.map(message -> properties.isIncludeHeaders() ?
 				protobufMessageBuilder.fromMessage(message).build() :
 				protobufMessageBuilder.withPayload(message.getPayload()).build())).map(MessageUtils::toMessage);
-		}
-
-		@StreamListener
-		@Output(Processor.OUTPUT)
-		public Flux<Message<byte[]>> processFlux(@Input(Processor.INPUT) final Flux<Message<Flux<byte[]>>> request) {
-
-			Flux<Message<byte[]>> flux = request.flatMap(m -> {
-				Flux<byte[]> payloads = m.getPayload();
-				return payloads.map(p -> MessageBuilder.withPayload(p).copyHeaders(m.getHeaders()).build());
-			});
-
-			ProtobufMessageBuilder protobufMessageBuilder = new ProtobufMessageBuilder();
-
-			return processorStub.stream(flux.map(message -> properties.isIncludeHeaders() ?
-				protobufMessageBuilder.fromMessage(message).build() :
-				protobufMessageBuilder.withPayload(message.getPayload()).build())).share().map(MessageUtils::toMessage);
 		}
 	}
 
