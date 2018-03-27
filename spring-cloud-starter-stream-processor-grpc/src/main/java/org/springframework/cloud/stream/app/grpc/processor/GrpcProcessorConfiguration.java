@@ -17,6 +17,7 @@
 package org.springframework.cloud.stream.app.grpc.processor;
 
 import com.google.protobuf.Empty;
+import function.ReactorMessageFunctionGrpc;
 import io.grpc.Channel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -31,6 +32,7 @@ import org.springframework.cloud.stream.annotation.Output;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.app.grpc.support.MessageUtils;
 import org.springframework.cloud.stream.app.grpc.support.ProtobufMessageBuilder;
+import org.springframework.cloud.stream.app.grpc.support.RiffMessageBuilder;
 import org.springframework.cloud.stream.messaging.Processor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -148,6 +150,32 @@ public class GrpcProcessorConfiguration {
 				protobufMessageBuilder.withPayload(message.getPayload()).build())).map(MessageUtils::toMessage);
 		}
 	}
+
+	@Configuration
+	@ConditionalOnProperty(value = "grpc.stub", havingValue = "riff")
+	public static class RiffStubConfiguration {
+		@Autowired
+		private ReactorMessageFunctionGrpc.ReactorMessageFunctionStub processorStub;
+
+		@Autowired
+		private GrpcProperties properties;
+
+		@Bean
+		public ReactorMessageFunctionGrpc.ReactorMessageFunctionStub processorStub(Channel grpcChannel) {
+			return ReactorMessageFunctionGrpc.newReactorStub(grpcChannel);
+		}
+
+		@StreamListener
+		@Output(Processor.OUTPUT)
+		public Flux<Message<byte[]>> process(@Input(Processor.INPUT) final Flux<Message<byte[]>> request) {
+
+			RiffMessageBuilder messageBuilder = new RiffMessageBuilder();
+			return processorStub.call(request.share().map(message -> properties.isIncludeHeaders() ?
+				messageBuilder.fromMessage(message).build() :
+				messageBuilder.withPayload(message.getPayload()).build())).share().map(MessageUtils::toMessage);
+		}
+	}
+
 
 	@Bean
 	@ConditionalOnProperty(name = "grpc.host")

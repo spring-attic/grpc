@@ -16,6 +16,7 @@
 
 package org.springframework.cloud.stream.app.grpc.support;
 
+import function.Function;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.HeaderValue;
 import org.springframework.cloud.stream.app.grpc.processor.ProcessorProtos.Message;
 import org.springframework.integration.support.MutableMessageBuilder;
@@ -33,6 +34,31 @@ public abstract class MessageUtils {
 
 		Map<String, Object> headers = new LinkedHashMap<>();
 		for (Map.Entry<String, HeaderValue> header : message.getHeadersMap().entrySet()) {
+			if (header.getKey().equals(MessageHeaders.ID)) {
+				headers.put(header.getKey(), UUID.fromString(header.getValue().getValues(0)));
+			}
+			else if (header.getKey().equals(MessageHeaders.TIMESTAMP)) {
+				headers.put(header.getKey(), Long.valueOf(header.getValue().getValues(0)));
+			}
+			else {
+				if (!header.getValue().getValuesList().isEmpty()) {
+					if (header.getValue().getValuesList().size() == 1) {
+						headers.put(header.getKey(), header.getValue().getValues(0));
+					}
+					else {
+						headers.put(header.getKey(), header.getValue().getValuesList());
+					}
+				}
+			}
+		}
+
+		return MutableMessageBuilder.withPayload(message.getPayload().toByteArray()).copyHeaders(headers).build();
+	}
+
+	public static org.springframework.messaging.Message<byte[]> toMessage(Function.Message message) {
+
+		Map<String, Object> headers = new LinkedHashMap<>();
+		for (Map.Entry<String, Function.Message.HeaderValue> header : message.getHeadersMap().entrySet()) {
 			if (header.getKey().equals(MessageHeaders.ID)) {
 				headers.put(header.getKey(), UUID.fromString(header.getValue().getValues(0)));
 			}
