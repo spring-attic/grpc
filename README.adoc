@@ -1,6 +1,6 @@
 # Grpc Processor
 
-A Processor for communicating with a remote process via gRPC.
+A Processor for communicating with a remote service via gRPC.
 
 To learn more about this application and the supported properties, please review the following link.
 
