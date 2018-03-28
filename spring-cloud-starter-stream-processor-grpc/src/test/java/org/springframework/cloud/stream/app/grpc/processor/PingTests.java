@@ -21,11 +21,7 @@ import static org.junit.Assert.fail;
 
 import com.google.protobuf.Empty;
 import io.grpc.Channel;
-import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,10 +35,7 @@ import org.springframework.cloud.stream.app.grpc.test.support.ProcessorServer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.core.parameters.P;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.util.UUID;
 
 /**
  * @author David Turanski
@@ -59,7 +52,6 @@ public class PingTests extends AbstractProcessorTest {
 	public static void setUp() throws Exception {
 		init(new ProcessorServer());
 	}
-
 
 	@Autowired
 	private ProcessorGrpc.ProcessorBlockingStub pingStub;

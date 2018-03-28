@@ -2,10 +2,9 @@
 = gRPC Processor
 
 This processor uses gRPC to process Messages via a remote process written in any language that supports gRPC. This
-pattern, commonly referred to as `sidecar` is intended to allow the Java app to handle the stream processing while
-the Polyglot sidecar application handles the business logic. The sidecar application must implement a
-link:https://grpc.io/[grpc] service using link:../grpc-app-protos/src/main/proto/processor.proto[this Google protocol
-buffers schema].
+pattern, allows the Java app to handle the stream processing while the gRPC service handles the business logic.
+The service must implement the link:https://grpc.io/[grpc] service using link:.
+./grpc-app-protos/src/main/proto/processor.proto[this protobuf schema].
 
 [NOTE]
 ====
@@ -13,6 +12,14 @@ The gRPC client stub is blocking by default. Asynchronous and streaming stubs ar
 perform better if the server is multi-threaded however message ordering will not be guaranteed. If the server
 supports bidirectional streaming, use the streaming stub.
 ====
+
+[NOTE]
+====
+A `riff` stub is available for interoperability with https://projectriff.io/[riff] function containers. This does not
+ interact with the Riff FaaS platform but supports running an existing function container standalone, for example,
+ `docker run -it -p10382:10382 some/riff-function:latest` .
+====
+
 
 == Input
 
@@ -45,7 +52,7 @@ $$grpc.include-headers$$:: $$Flag to include headers in Messages to the remote p
 $$grpc.max-message-size$$:: $$The maximum message size (bytes).$$ *($$Integer$$, default: `$$0$$`)*
 $$grpc.plain-text$$:: $$Flag to send messages in plain text. SSL configuration required otherwise.$$ *($$Boolean$$, default: `$$true$$`)*
 $$grpc.port$$:: $$The gRPC server port.$$ *($$Integer$$, default: `$$0$$`)*
-$$grpc.stub$$:: $$RPC communications style (default 'blocking').$$ *($$Stub$$, default: `$$<none>$$`, possible values: `async`,`blocking`,`streaming`)*
+$$grpc.stub$$:: $$RPC communications style (default 'blocking').$$ *($$Stub$$, default: `$$<none>$$`, possible values: `async`,`blocking`,`streaming`,`riff`)*
 //end::configuration-properties[]
 
 //end::ref-doc[]

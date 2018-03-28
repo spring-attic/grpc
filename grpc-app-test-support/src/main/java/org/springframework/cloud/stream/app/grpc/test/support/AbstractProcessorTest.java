@@ -2,9 +2,7 @@ package org.springframework.cloud.stream.app.grpc.test.support;
 
 import io.grpc.ManagedChannel;
 import io.grpc.inprocess.InProcessChannelBuilder;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
