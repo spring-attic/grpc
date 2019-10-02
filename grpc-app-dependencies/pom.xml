@@ -16,7 +16,7 @@
 		<relativePath/>
 	</parent>
 	<properties>
-	   <reactor-grpc.version>0.10.0-RC1</reactor-grpc.version>
+	   <reactor-grpc.version>0.10.0</reactor-grpc.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
